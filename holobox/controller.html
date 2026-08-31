@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>HoloBox — Control</title>
+<style>
+  :root{--cy:#16f2ff;--mg:#ff2bd6;--bg:#070b16;--pan:#0e1426}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:#cfe9ff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;
+    padding:14px 14px 40px;max-width:560px;margin:0 auto}
+  h1{font-size:17px;margin:0 0 2px;letter-spacing:.05em;
+    background:linear-gradient(90deg,var(--cy),var(--mg));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:11px;opacity:.6;margin-bottom:12px}
+  .card{background:var(--pan);border:1px solid rgba(22,242,255,.18);border-radius:14px;padding:12px;margin-bottom:12px}
+  .card h2{font-size:12px;letter-spacing:.08em;opacity:.7;margin:0 0 9px;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:7px}
+  button{background:rgba(22,242,255,.08);color:#cfe9ff;border:1px solid rgba(22,242,255,.3);
+    border-radius:10px;padding:10px 8px;font-size:13px;cursor:pointer;transition:.12s}
+  button:active{transform:scale(.96)}
+  button.on{background:linear-gradient(90deg,rgba(22,242,255,.35),rgba(255,43,214,.3));border-color:var(--cy);color:#fff}
+  label{font-size:12px;opacity:.8;display:block;margin:10px 0 3px}
+  input[type=range]{width:100%;accent-color:var(--cy)}
+  input[type=color]{width:100%;height:38px;background:none;border:1px solid rgba(22,242,255,.3);border-radius:10px}
+  select,input[type=number]{width:100%;background:var(--pan);color:#cfe9ff;border:1px solid rgba(22,242,255,.3);
+    border-radius:10px;padding:9px;font-size:13px}
+  .row{display:flex;gap:8px;align-items:center}
+  .row>*{flex:1}
+  #pad{height:150px;border:1px dashed rgba(22,242,255,.4);border-radius:14px;display:flex;
+    align-items:center;justify-content:center;font-size:12px;opacity:.7;touch-action:none;user-select:none;
+    background:radial-gradient(circle at 50% 50%,rgba(22,242,255,.07),transparent 70%)}
+  .file{display:block;border:1px dashed rgba(255,43,214,.5);border-radius:12px;padding:14px;text-align:center;font-size:13px;cursor:pointer}
+  .file input{display:none}
+  .status{font-size:11px;opacity:.6;margin-top:6px;min-height:14px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  a.dl{display:block;text-align:center;background:rgba(255,43,214,.18);border:1px solid var(--mg);
+    border-radius:10px;padding:10px;color:#fff;text-decoration:none;font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+  <h1>HOLOBOX CONTROL</h1>
+  <div class="sub">Drives the floating model in your glass box. <span id="conn">connecting…</span></div>
+
+  <div class="card">
+    <h2>Model</h2>
+    <div class="grid" id="procs">
+      <button data-m="torusknot" class="on">Torus knot</button>
+      <button data-m="sphere">Sphere</button>
+      <button data-m="torus">Torus</button>
+      <button data-m="cube">Cube</button>
+    </div>
+    <label class="file" style="margin-top:10px">⬆ Upload .glb / .gltf / .obj / .stl
+      <input type="file" id="file" accept=".glb,.gltf,.obj,.stl">
+    </label>
+    <div class="status" id="upst"></div>
+  </div>
+
+  <div class="card">
+    <h2>Rotate &amp; spin</h2>
+    <div id="pad">drag to rotate</div>
+    <div class="row" style="margin-top:10px">
+      <button id="spin" class="on">⟳ Auto-spin: ON</button>
+      <button id="reset">⌖ Reset view</button>
+    </div>
+    <label>Spin speed <span id="ssv">0.5</span></label>
+    <input type="range" id="ss" min="0" max="3" step="0.05" value="0.5">
+    <label>Scale <span id="scv">1.0</span></label>
+    <input type="range" id="sc" min="0.3" max="2.5" step="0.05" value="1">
+  </div>
+
+  <div class="card">
+    <h2>Look</h2>
+    <label>Material</label>
+    <select id="mat">
+      <option value="normal">Hologram (rainbow normals)</option>
+      <option value="glow">Glow (flat colour)</option>
+      <option value="wire">Wireframe</option>
+      <option value="solid">Solid lit</option>
+    </select>
+    <div class="two" style="margin-top:10px">
+      <div><label>Colour</label><input type="color" id="color" value="#16f2ff"></div>
+      <div><label>Background</label><input type="color" id="bg" value="#000000"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="wire">Wireframe: off</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Box mode &amp; calibration</h2>
+    <div class="two">
+      <button id="mPyr" class="on">▲ Pyramid (4-side)</button>
+      <button id="mSheet">◧ 45° sheet</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="fr" class="on">Different side per face: ON</button>
+      <button id="mir">Mirror: off</button>
+    </div>
+    <label>Centre gap <span id="gpv">0.18</span></label>
+    <input type="range" id="gp" min="0" max="0.5" step="0.01" value="0.18">
+    <label>Face rotation offset <span id="fov">0°</span> (tweak if reflection is upside-down)</label>
+    <input type="range" id="fo" min="0" max="270" step="90" value="0">
+  </div>
+
+  <div class="card">
+    <h2>Cut template for the acrylic pyramid</h2>
+    <div class="two">
+      <div><label>Screen diagonal (in)</label><input type="number" id="diag" value="6.1" step="0.1"></div>
+      <div><label>Aspect (long:short)</label>
+        <select id="asp"><option value="2.16">19.5:9 phone</option><option value="1.777">16:9</option>
+          <option value="1.6">16:10</option><option value="1.333">4:3 tablet</option><option value="1">square</option></select>
+      </div>
+    </div>
+    <div class="status" id="dims"></div>
+    <a class="dl" id="tpl" href="#">⤓ Download cut template (SVG)</a>
+    <div class="status">Print at 100% (no scaling), cut 4, tape into a pyramid, sit it apex-up on the screen.</div>
+  </div>
+
+<script>
+const API = '';
+let st = { rotX:0, rotY:0, autoSpin:true, spinSpeed:0.5, scale:1, color:'#16f2ff',
+  material:'normal', wireframe:false, mode:'pyramid', faceRotate:true, gap:0.18,
+  bg:'#000000', faceOffsetDeg:0, mirror:false, model:null, name:'torusknot' };
+
+let timer=null;
+function push(partial){
+  Object.assign(st, partial);
+  clearTimeout(timer);
+  timer = setTimeout(()=>{
+    fetch('/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)})
+      .then(()=>document.getElementById('conn').textContent='● connected')
+      .catch(()=>document.getElementById('conn').textContent='✕ no server');
+  }, 30);
+}
+
+// procedural models
+document.querySelectorAll('#procs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#procs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); push({model:null,name:b.dataset.m});
+});
+
+// upload
+document.getElementById('file').onchange = async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const up = document.getElementById('upst'); up.textContent='uploading '+f.name+'…';
+  try{
+    const r = await fetch('/upload?name='+encodeURIComponent(f.name),{method:'PUT',body:f});
+    const j = await r.json();
+    up.textContent='loaded '+j.name;
+    document.querySelectorAll('#procs button').forEach(x=>x.classList.remove('on'));
+    push({model:j.url, name:j.name});
+  }catch(err){ up.textContent='upload failed: '+err; }
+};
+
+// rotate pad
+const pad=document.getElementById('pad'); let drag=false,lx=0,ly=0;
+const dn=e=>{drag=true;const p=pt(e);lx=p.x;ly=p.y;};
+const mv=e=>{ if(!drag)return; const p=pt(e);
+  st.rotY += (p.x-lx)*0.012; st.rotX += (p.y-ly)*0.012; lx=p.x;ly=p.y;
+  push({rotX:st.rotX,rotY:st.rotY}); e.preventDefault(); };
+const up=()=>drag=false;
+function pt(e){const t=e.touches?e.touches[0]:e;return{x:t.clientX,y:t.clientY};}
+pad.addEventListener('mousedown',dn);pad.addEventListener('touchstart',dn,{passive:false});
+addEventListener('mousemove',mv);pad.addEventListener('touchmove',mv,{passive:false});
+addEventListener('mouseup',up);addEventListener('touchend',up);
+
+// spin / reset
+const spinBtn=document.getElementById('spin');
+spinBtn.onclick=()=>{const on=!st.autoSpin;spinBtn.classList.toggle('on',on);
+  spinBtn.textContent='⟳ Auto-spin: '+(on?'ON':'OFF');push({autoSpin:on});};
+document.getElementById('reset').onclick=()=>push({rotX:0,rotY:0});
+
+// sliders
+const bind=(id,key,fmt,vid,scale=1)=>{const el=document.getElementById(id);
+  el.oninput=()=>{const v=+el.value;if(vid)document.getElementById(vid).textContent=fmt?fmt(v):v;push({[key]:v*scale});};};
+bind('ss','spinSpeed',v=>v.toFixed(2),'ssv');
+bind('sc','scale',v=>v.toFixed(1),'scv');
+bind('gp','gap',v=>v.toFixed(2),'gpv');
+bind('fo','faceOffsetDeg',v=>v+'°','fov');
+
+// look
+document.getElementById('mat').onchange=e=>push({material:e.target.value});
+document.getElementById('color').oninput=e=>push({color:e.target.value});
+document.getElementById('bg').oninput=e=>push({bg:e.target.value});
+const wb=document.getElementById('wire');
+wb.onclick=()=>{const on=!st.wireframe;wb.classList.toggle('on',on);wb.textContent='Wireframe: '+(on?'on':'off');push({wireframe:on});};
+
+// mode
+const mPyr=document.getElementById('mPyr'),mSheet=document.getElementById('mSheet');
+mPyr.onclick=()=>{mPyr.classList.add('on');mSheet.classList.remove('on');push({mode:'pyramid'});};
+mSheet.onclick=()=>{mSheet.classList.add('on');mPyr.classList.remove('on');push({mode:'sheet'});};
+const fr=document.getElementById('fr');
+fr.onclick=()=>{const on=!st.faceRotate;fr.classList.toggle('on',on);fr.textContent='Different side per face: '+(on?'ON':'OFF');push({faceRotate:on});};
+const mir=document.getElementById('mir');
+mir.onclick=()=>{const on=!st.mirror;mir.classList.toggle('on',on);mir.textContent='Mirror: '+(on?'on':'off');push({mirror:on});};
+
+// ---- cut template ----
+function template(){
+  const diag=+document.getElementById('diag').value, asp=+document.getElementById('asp').value;
+  const diagmm=diag*25.4;
+  const shortmm=diagmm/Math.sqrt(1+asp*asp);
+  const B=Math.round(shortmm*0.95), T=Math.round(B*0.12);
+  const L=Math.round((B-T)/2*1.4142);              // 45° slant height
+  document.getElementById('dims').textContent=
+    `screen short side ≈ ${Math.round(shortmm)}mm → trapezoid: base ${B}mm, top ${T}mm, height ${L}mm. Cut 4.`;
+  const m=20, w=B+m*2, h=L+m*2;
+  const x0=m, x1=m+(B-T)/2, x2=m+(B+T)/2, x3=m+B;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">
+<rect width="${w}" height="${h}" fill="white"/>
+<polygon points="${x0},${m+L} ${x3},${m+L} ${x2},${m} ${x1},${m}" fill="none" stroke="black" stroke-width="0.5"/>
+<text x="${w/2}" y="${m+L+12}" font-size="6" text-anchor="middle">base ${B}mm — cut 4, tape edges into a pyramid</text>
+<text x="${w/2}" y="${m-6}" font-size="6" text-anchor="middle">top ${T}mm</text>
+</svg>`;
+  return svg;
+}
+function refreshTpl(){
+  const svg=template();
+  const blob=new Blob([svg],{type:'image/svg+xml'});
+  document.getElementById('tpl').href=URL.createObjectURL(blob);
+  document.getElementById('tpl').download='holobox-pyramid-template.svg';
+}
+document.getElementById('diag').oninput=refreshTpl;
+document.getElementById('asp').onchange=refreshTpl;
+refreshTpl();
+
+// initial sync
+push({});
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>HoloBox — Display</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}
+  #stage{position:fixed;inset:0;display:block}
+  #hint{position:fixed;left:8px;bottom:6px;font:11px -apple-system,sans-serif;
+    color:#16f2ff;opacity:.5;cursor:auto}
+  #hint.hide{display:none}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="hint">HoloBox display — put the acrylic pyramid in the centre. Control from your phone. (press H to hide)</div>
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.js" } }
+</script>
+<script type="module" src="./display.js"></script>
+<script>
+  addEventListener('keydown', e => { if(e.key==='h'||e.key==='H') document.getElementById('hint').classList.toggle('hide'); });
+</script>
+</body>
+</html>

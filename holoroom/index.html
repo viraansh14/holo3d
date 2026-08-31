@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>HoloRoom — walk inside a 3D world</title>
+<style>
+  :root { --cy:#16f2ff; --mg:#ff2bd6; }
+  * { box-sizing: border-box; }
+  html,body { margin:0; height:100%; background:#000; overflow:hidden;
+    font-family:-apple-system,Segoe UI,Roboto,sans-serif; color:#cfe9ff; }
+  #c { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .panel { position:fixed; z-index:10; background:rgba(6,10,22,.72);
+    backdrop-filter:blur(10px); border:1px solid rgba(22,242,255,.25);
+    border-radius:14px; padding:12px 14px; }
+  #ui { top:12px; left:12px; max-width:300px; }
+  #ui h1 { font-size:15px; margin:0 0 2px; letter-spacing:.06em;
+    background:linear-gradient(90deg,var(--cy),var(--mg));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  #ui .sub { font-size:11px; opacity:.7; margin-bottom:10px; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; margin:7px 0; }
+  button, select {
+    background:rgba(22,242,255,.08); color:#cfe9ff; border:1px solid rgba(22,242,255,.3);
+    border-radius:9px; padding:6px 9px; font-size:12px; cursor:pointer; transition:.15s; }
+  button:hover { background:rgba(22,242,255,.2); }
+  button.on { background:linear-gradient(90deg,rgba(22,242,255,.35),rgba(255,43,214,.35));
+    border-color:var(--cy); color:#fff; }
+  label.lbl { font-size:11px; opacity:.75; display:block; margin-top:8px; }
+  input[type=range] { width:100%; accent-color:var(--cy); }
+  #hud { bottom:12px; left:12px; font-size:11px; line-height:1.5; opacity:.85;
+    font-variant-numeric:tabular-nums; }
+  #xrbtn { bottom:12px; right:12px; }
+  #help { top:12px; right:12px; max-width:280px; font-size:11.5px; line-height:1.5; }
+  #help b { color:var(--cy); }
+  .tag { display:inline-block; font-size:10px; padding:1px 6px; border-radius:6px;
+    background:rgba(255,43,214,.18); border:1px solid rgba(255,43,214,.4); margin-left:6px; }
+  kbd { background:#0a1426; border:1px solid #2a4; border-radius:4px; padding:0 4px; font-size:10px; }
+  @media (max-width:640px){ #help{ display:none; } #ui{ max-width:46vw; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ui" class="panel">
+  <h1>HOLOROOM <span class="tag">walk inside it</span></h1>
+  <div class="sub">Head-tracked window into a 3D world. No glasses.</div>
+
+  <label class="lbl">SCENE</label>
+  <div class="row" id="scenes"></div>
+
+  <label class="lbl">HEAD TRACKING</label>
+  <div class="row" id="trackers">
+    <button data-m="mouse" class="on">Mouse</button>
+    <button data-m="gyro">Gyro</button>
+    <button data-m="face">Webcam</button>
+  </div>
+
+  <label class="lbl">SCREEN SIZE (diagonal): <span id="diagv">24"</span></label>
+  <input type="range" id="diag" min="6" max="120" value="24">
+
+  <div class="row" style="margin-top:10px">
+    <button id="full">⛶ Fullscreen</button>
+    <button id="reset">⟲ Recentre</button>
+  </div>
+</div>
+
+<div id="help" class="panel">
+  <b>How to feel the 3D:</b><br>
+  1. <b>Mouse</b> mode — move the cursor; the world shifts with real parallax,
+  like looking through a window.<br>
+  2. <b>Webcam</b> mode — it tracks your head; lean side to side and look
+  <i>around</i> the floating objects. This is the magic one.<br>
+  3. Set <b>Screen size</b> to your actual display for correct perspective.<br>
+  4. <b>Project</b> this fullscreen onto a wall → the wall becomes a window.<br>
+  5. Got a VR/AR headset? Hit <b>Enter XR</b> and step fully inside.<br>
+  <span style="opacity:.6">Tip: a dark room makes the void disappear and the
+  hologram float.</span>
+</div>
+
+<div id="hud" class="panel">eye: — &nbsp; | &nbsp; <span id="tstat">mouse ready</span></div>
+<button id="xrbtn" class="panel" style="z-index:11">Checking XR…</button>
+
+<script src="lib/three.min.js"></script>
+<script src="scenes.js"></script>
+<script src="facetrack.js"></script>
+<script src="holoroom.js"></script>
+<script>
+(function () {
+  const eng = new HOLO.Engine(document.getElementById('c'));
+  eng.start();
+
+  // Scene buttons.
+  const sc = document.getElementById('scenes');
+  HOLO.SCENE_LIST.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.textContent = name[0].toUpperCase() + name.slice(1);
+    if (i === 0) b.classList.add('on');
+    b.onclick = () => {
+      sc.querySelectorAll('button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on'); eng.setScene(name);
+    };
+    sc.appendChild(b);
+  });
+
+  // Tracker buttons.
+  document.querySelectorAll('#trackers button').forEach((b) => {
+    b.onclick = async () => {
+      document.querySelectorAll('#trackers button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on');
+      await eng.setTracker(b.dataset.m);
+    };
+  });
+
+  // Screen-size calibration.
+  const diag = document.getElementById('diag'), diagv = document.getElementById('diagv');
+  diag.oninput = () => { diagv.textContent = diag.value + '"'; eng.setScreenDiag(+diag.value); };
+
+  document.getElementById('full').onclick = () =>
+    document.documentElement.requestFullscreen?.();
+  document.getElementById('reset').onclick = () => {
+    eng.tracker._target = { x: 0, y: 0, z: 0.6 };
+  };
+
+  // HUD.
+  const hud = document.getElementById('hud'), tstat = document.getElementById('tstat');
+  eng.onFrame = (eye, status) => {
+    hud.firstChild.nodeValue =
+      `eye: ${eye.x.toFixed(2)} ${eye.y.toFixed(2)} ${eye.z.toFixed(2)} m  |  `;
+    tstat.textContent = status;
+  };
+
+  // ---- Minimal WebXR enter/exit button (immersive-vr, fallback immersive-ar) ----
+  const xrbtn = document.getElementById('xrbtn');
+  let xrSession = null;
+  if (!('xr' in navigator)) { xrbtn.textContent = 'XR unavailable'; xrbtn.disabled = true; }
+  else {
+    const tryMode = async () => {
+      for (const mode of ['immersive-vr', 'immersive-ar']) {
+        if (await navigator.xr.isSessionSupported(mode).catch(() => false)) return mode;
+      }
+      return null;
+    };
+    tryMode().then((mode) => {
+      if (!mode) { xrbtn.textContent = 'No XR device'; xrbtn.disabled = true; return; }
+      xrbtn.textContent = 'Enter XR ▸';
+      xrbtn.onclick = async () => {
+        if (xrSession) { await xrSession.end(); return; }
+        xrSession = await navigator.xr.requestSession(mode, {
+          optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+        });
+        eng.renderer.xr.setReferenceSpaceType('local-floor');
+        await eng.renderer.xr.setSession(xrSession);
+        xrbtn.textContent = 'Exit XR ◾'; xrbtn.classList.add('on');
+        xrSession.addEventListener('end', () => {
+          xrSession = null; xrbtn.textContent = 'Enter XR ▸'; xrbtn.classList.remove('on');
+        });
+      };
+    });
+  }
+})();
+</script>
+</body>
+</html>
